@@ -343,22 +343,38 @@ export default function JournalPage() {
                 <div className="px-2 py-1 text-sm font-medium text-pink-600">
                   Select a user to share with:
                 </div>
-                {users.map((user) => (
-                  <DropdownMenuItem
-                    key={user._id}
-                    onClick={() => shareWithUser(user._id)}
-                    className="flex items-center gap-3 cursor-pointer py-3"
-                  >
-                    <div className="bg-gradient-to-br from-pink-300 to-purple-300 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm">
-                        {user.avatar}
-                      </span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{user.name}</span>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                {users.map((shareUser) => {
+                  const isAlreadyShared = user.sharedWith.includes(
+                    shareUser._id
+                  );
+                  return (
+                    <DropdownMenuItem
+                      key={shareUser._id}
+                      onClick={() => {
+                        if (!isAlreadyShared) shareWithUser(user._id);
+                      }}
+                      // className={`flex items-center gap-3 cursor-pointer py-3 ${
+                      //   isAlreadyShared ? "bg-green-100" : ""
+                      // }`}
+                      // className="flex items-center gap-3 cursor-pointer py-3"
+                      className={`flex items-center gap-3 cursor-pointer py-3 ${
+                        isAlreadyShared
+                          ? "bg-pink-300 hover:bg-pink-300 opacity-100 cursor-not-allowed"
+                          : ""
+                      }`}
+                      // disabled={isAlreadyShared}
+                    >
+                      <div className="bg-gradient-to-br from-pink-300 to-purple-300 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm">
+                          {shareUser.avatar}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{shareUser.name}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
