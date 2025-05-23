@@ -121,17 +121,6 @@ const customStyles = `
     text-fill-color: transparent;
   }
 
-  .shared-badge {
-    background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
   button:focus {
     outline: none !important;
     box-shadow: none !important;
@@ -176,12 +165,22 @@ export default function JournalPage() {
   const [temp, setTemp] = useState(0);
   const [userChangedCheck, setUserChangedCheck] = useState(0);
 
+  const [isLoadingComplaints, setIsLoadingComplaints] = useState(false);
+  const [isLoadingSharedComplaints, setIsLoadingSharedComplaints] =
+    useState(false);
+
   const getComplaints = async () => {
-    const res = await axios.get("/api/messages", {
-      withCredentials: true,
-    });
-    if (res.data.success) {
-      setComplaints(res.data.messages);
+    setIsLoadingComplaints(true);
+    try {
+      const res = await axios.get("/api/messages", {
+        withCredentials: true,
+      });
+
+      if (res.data.success) {
+        setComplaints(res.data.messages);
+      }
+    } finally {
+      setIsLoadingComplaints(false);
     }
   };
 
@@ -212,11 +211,16 @@ export default function JournalPage() {
   };
 
   const getSharedComplaints = async () => {
-    const res = await axios.get("/api/messages/shared", {
-      withCredentials: true,
-    });
-    if (res.data.success) {
-      setSharedComplaints(res.data.messages);
+    setIsLoadingSharedComplaints(true);
+    try {
+      const res = await axios.get("/api/messages/shared", {
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        setSharedComplaints(res.data.messages);
+      }
+    } finally {
+      setIsLoadingSharedComplaints(false);
     }
   };
 
@@ -355,12 +359,12 @@ export default function JournalPage() {
             </Button>
           </div>
 
-          {viewMode === "personal" && complaints.length > 0 && (
+          {viewMode === "personal" && complaints?.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white border-none rounded-xl flex items-center gap-2 focus:outline-none focus:ring-0"
+                  className=" bg-pink-400 hover:bg-pink-500 hover:text-white text-white border-none rounded-xl flex items-center gap-2 focus:outline-none focus:ring-0"
                 >
                   <Share2 className="h-4 w-4" />
                   Share with
@@ -383,8 +387,8 @@ export default function JournalPage() {
                       )}
                       title={shareUser.isSelected ? "Remove" : "Add"}
                     >
-                      <div className="bg-gradient-to-br from-pink-300 to-purple-300 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm">
+                      <div className="bg-white rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                        <span className="text-pink-600 font-bold text-sm">
                           {shareUser.avatar}
                         </span>
                       </div>
@@ -410,7 +414,49 @@ export default function JournalPage() {
 
           <div className="relative">
             <AnimatePresence mode="popLayout">
-              {viewMode === "personal" && complaints.length > 0 ? (
+              {viewMode === "personal" && isLoadingComplaints ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="py-16 text-center"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 2,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "linear",
+                    }}
+                    className="text-pink-500 inline-block mb-4"
+                  >
+                    <Heart className="h-16 w-16 fill-pink-500" />
+                  </motion.div>
+                  <p className="text-pink-600 font-medium">
+                    Loading your journal, sweetie...
+                  </p>
+                </motion.div>
+              ) : viewMode === "sharedWithMe" && isLoadingSharedComplaints ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="py-16 text-center"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 2,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "linear",
+                    }}
+                    className="text-purple-500 inline-block mb-4"
+                  >
+                    <Users className="h-16 w-16" />
+                  </motion.div>
+                  <p className="text-purple-600 font-medium">
+                    Loading shared journal, cutie...
+                  </p>
+                </motion.div>
+              ) : viewMode === "personal" && complaints?.length > 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -520,11 +566,22 @@ export default function JournalPage() {
                     }}
                     className="inline-block mb-4"
                   >
-                    <Sparkles className="h-16 w-16 text-pink-400" />
+                    {viewMode === "sharedWithMe" ? (
+                      <Users className="h-16 w-16 text-pink-400" />
+                    ) : (
+                      <Sparkles className="h-16 w-16 text-pink-400" />
+                    )}
                   </motion.div>
                   <h3 className="text-2xl font-bold no-complaints mb-2">
-                    no complaints yet, pookie!
+                    {viewMode === "sharedWithMe"
+                      ? "No shared journal entries yet, pookie!"
+                      : "Your journal is empty, pookie!"}
                   </h3>
+                  <p className="text-pink-500">
+                    {viewMode === "sharedWithMe"
+                      ? "When someone shares their journal with you, entries will appear here 💕"
+                      : "Share your thoughts and feelings in the complaint box to see them here 💕"}
+                  </p>
                   <div className="mt-8">
                     <Link href="/">
                       <Button className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white rounded-xl py-6 px-8 font-medium">
