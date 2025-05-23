@@ -7,7 +7,6 @@ export async function POST(req) {
   try {
     await connectDB();
     const user = await verifyToken();
-    console.log(user);
 
     const { message } = await req.json();
     if (!message) {
@@ -32,11 +31,9 @@ export async function POST(req) {
 }
 
 export async function GET() {
-  console.log("calling");
   try {
     await connectDB();
     const user = await verifyToken();
-    console.log(user);
 
     const messages = await Message.find({ user: user.id }).sort({
       updatedAt: -1,

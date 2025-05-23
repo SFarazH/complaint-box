@@ -9,8 +9,16 @@ import {
   ArrowLeft,
   Trash2,
   Sparkles,
+  Share2,
+  Users,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { cn } from "../../lib/utils";
 import Link from "next/link";
 import { useAuth } from "../../context/auth-context";
@@ -111,42 +119,52 @@ const customStyles = `
     background-clip: text;
     text-fill-color: transparent;
   }
-`;
+
+  .shared-badge {
+    background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  button:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  [data-state="open"] {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  `;
 
 export default function JournalPage() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const [complaints, setComplaints] = useState([]);
   const [backgroundHearts, setBackgroundHearts] = useState([]);
-  const [isDeleting, setIsDeleting] = useState(null);
+  const [sharedComplaints, setSharedComplaints] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [viewMode, setViewMode] = useState("personal");
   const [temp, setTemp] = useState(0);
 
   const getComplaints = async () => {
     const res = await axios.get("/api/messages", {
       withCredentials: true,
     });
-    console.log(res.data.success);
     if (res.data.success) {
-      console.log("ok");
       setComplaints(res.data.messages);
     }
   };
-
-  useEffect(() => {
-    getComplaints();
-  }, [temp]);
-
-  useEffect(() => {
-    const heartCount = 60;
-    const hearts = Array.from({ length: heartCount }, (_, i) => i);
-    setBackgroundHearts(hearts);
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   const deleteComplaint = async (id) => {
     const res = await axios.delete(`/api/messages/${id}`, {
@@ -159,6 +177,62 @@ export default function JournalPage() {
       toast.error("oops!");
     }
   };
+
+  const getUsersList = async (id) => {
+    const res = await axios.get("/api/users/list");
+    if (res.data.success) {
+      const users = res.data.users
+        .filter((user) => user._id !== id)
+        .map((user) => {
+          user.avatar = user.name[0];
+          return user;
+        });
+      setUsers(users);
+    }
+  };
+
+  const getSharedComplaints = async () => {
+    const res = await axios.get("/api/messages/shared", {
+      withCredentials: true,
+    });
+    if (res.data.success) {
+      setSharedComplaints(res.data.messages);
+    }
+  };
+
+  useEffect(() => {
+    getSharedComplaints();
+  }, []);
+
+  const shareWithUser = async (id) => {
+    const res = await axios.put(
+      "/api/users/share",
+      {
+        shareId: id,
+      },
+      { withCredentials: true }
+    );
+  };
+
+  useEffect(() => {
+    getComplaints();
+  }, [temp]);
+
+  useEffect(() => {
+    user && getUsersList(user._id);
+  }, [user]);
+
+  useEffect(() => {
+    const heartCount = 60;
+    const hearts = Array.from({ length: heartCount }, (_, i) => i);
+    setBackgroundHearts(hearts);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   if (isLoading) {
     return (
@@ -224,13 +298,79 @@ export default function JournalPage() {
           </div>
           <div className="w-12"></div>
         </div>
+
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant={viewMode === "personal" ? "default" : "outline"}
+              onClick={() => setViewMode("personal")}
+              className={cn(
+                "rounded-xl px-6 py-3 font-medium transition-all duration-200",
+                viewMode === "personal"
+                  ? "bg-pink-400 hover:bg-pink-500 text-white shadow-lg shadow-pink-200 border-pink-400"
+                  : "border-pink-300 text-pink-600 hover:bg-pink-50 hover:border-pink-400"
+              )}
+            >
+              My Journal
+            </Button>
+            <Button
+              variant={viewMode === "sharedWithMe" ? "default" : "outline"}
+              onClick={() => setViewMode("sharedWithMe")}
+              className={cn(
+                "rounded-xl px-6 py-3 font-medium transition-all duration-200 flex items-center gap-2",
+                viewMode === "sharedWithMe"
+                  ? "bg-purple-400 hover:bg-purple-500 text-white shadow-lg shadow-purple-200 border-purple-400"
+                  : "border-purple-300 text-purple-600 hover:bg-purple-50 hover:border-purple-400"
+              )}
+            >
+              <Users className="h-4 w-4" />
+              Shared Journal
+            </Button>
+          </div>
+
+          {viewMode === "personal" && complaints.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white border-none rounded-xl flex items-center gap-2 focus:outline-none focus:ring-0"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share with
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <div className="px-2 py-1 text-sm font-medium text-pink-600">
+                  Select a user to share with:
+                </div>
+                {users.map((user) => (
+                  <DropdownMenuItem
+                    key={user._id}
+                    onClick={() => shareWithUser(user._id)}
+                    className="flex items-center gap-3 cursor-pointer py-3"
+                  >
+                    <div className="bg-gradient-to-br from-pink-300 to-purple-300 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-sm">
+                        {user.avatar}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user.name}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
         <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg p-8 border-2 border-pink-200 relative overflow-hidden journal-page">
           <div className="absolute -top-6 -right-6 w-24 h-24 bg-pink-100 rounded-full opacity-50" />
           <div className="absolute -bottom-6 -left-6 w-16 h-16 bg-purple-100 rounded-full opacity-50" />
 
           <div className="relative">
             <AnimatePresence mode="popLayout">
-              {complaints.length > 0 ? (
+              {viewMode === "personal" && complaints.length > 0 ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -275,6 +415,54 @@ export default function JournalPage() {
                     </AnimatePresence>
                   ))}
                 </motion.div>
+              ) : viewMode === "sharedWithMe" &&
+                sharedComplaints?.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-6"
+                >
+                  {sharedComplaints.map((sharedComplaint) => (
+                    <motion.div
+                      key={sharedComplaint._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-sm journal-entry border-2 border-purple-200"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="h-4 w-4 text-purple-400" />
+                          <span className="journal-date text-sm text-purple-600">
+                            {format(
+                              new Date(sharedComplaint.createdAt),
+                              "MMMM d, yyyy 'at' h:mm a"
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4">
+                        <div className="bg-gradient-to-br from-purple-300 to-pink-300 rounded-full h-10 w-10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold">
+                            {sharedComplaint.user.name
+                              ?.charAt(0)
+                              .toLowerCase() || "?"}
+                          </span>
+                        </div>
+
+                        <div className="flex-1">
+                          <p className="text-purple-600 whitespace-pre-wrap mb-3">
+                            {sharedComplaint.message}
+                          </p>
+                          <div className="text-xs text-purple-500 bg-purple-100 rounded-lg px-3 py-2 inline-block">
+                            💕 Shared by{" "}
+                            {sharedComplaint.user.name || "Someone special"}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
               ) : (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -297,10 +485,6 @@ export default function JournalPage() {
                   <h3 className="text-2xl font-bold no-complaints mb-2">
                     no complaints yet, pookie!
                   </h3>
-                  <p className="text-pink-500">
-                    Share your thoughts and feelings in the complaint box to see
-                    them here 💕
-                  </p>
                   <div className="mt-8">
                     <Link href="/">
                       <Button className="bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white rounded-xl py-6 px-8 font-medium">

@@ -42,11 +42,7 @@ export default function ComplaintBox() {
     e.preventDefault();
     if (complaint.trim()) {
       try {
-        console.log("calling");
-
         const res = await submitMsg();
-
-        console.log(res);
 
         if (res.status === 201) {
           toast.success("Message submitted successfully!");

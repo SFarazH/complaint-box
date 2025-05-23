@@ -75,7 +75,6 @@ export function AuthProvider({ children }) {
   const verifyUser = async () => {
     try {
       const userData = await verifyApi();
-      console.log(userData);
       setUser(userData.user);
     } catch (error) {
       setUser(null);

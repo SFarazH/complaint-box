@@ -2,7 +2,6 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
 
 export const verifyToken = (req, res, next) => {
-  console.log("inside verify");
   const token = req.cookies?.pookieToken;
 
   if (!token)
