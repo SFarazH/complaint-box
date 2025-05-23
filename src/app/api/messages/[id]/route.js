@@ -46,6 +46,11 @@ export async function GET() {
         },
       },
       {
+        $sort: {
+          updatedAt: -1,
+        },
+      },
+      {
         $lookup: {
           from: "users",
           localField: "user",

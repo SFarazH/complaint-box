@@ -2,6 +2,7 @@ import { connectDB } from "../../../../lib/utils";
 import { NextResponse } from "next/server";
 import User from "../../models/User";
 import { verifyToken } from "../../../../lib/verify";
+import { Types } from "mongoose";
 
 export async function PUT(req) {
   try {
@@ -13,16 +14,26 @@ export async function PUT(req) {
       return NextResponse.json({ message: "user required" }, { status: 400 });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      user.id,
-      {
-        $addToSet: { sharedWith: shareId },
-      },
-      { $new: true }
-    );
+    const userDoc = await User.findById(user.id);
+    const shareObjectId = new Types.ObjectId(shareId);
+
+    if (userDoc.sharedWith.some((id) => id.equals(shareObjectId))) {
+      await User.findByIdAndUpdate(
+        user.id,
+        { $pull: { sharedWith: shareId } },
+        { new: true }
+      );
+    } else {
+      await User.findByIdAndUpdate(
+        user.id,
+        { $addToSet: { sharedWith: shareId } },
+        { new: true }
+      );
+    }
+
     return NextResponse.json({
       message: "shared with user",
-      user: updatedUser,
+      success: true,
     });
   } catch (error) {
     console.error("Error updating sharedWith:", error);

@@ -11,6 +11,7 @@ import {
   Sparkles,
   Share2,
   Users,
+  Check,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import {
@@ -145,10 +146,27 @@ const customStyles = `
     outline: none !important;
     box-shadow: none !important;
   }
-  `;
+  
+  .dropdown-item {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    margin: 4px;
+  }
+  
+.dropdown-item:hover {
+  background-color: #fbcfe8 !important; 
+}
+
+.dropdown-item-selected {
+  background-color: #f9a8d4 !important; 
+}
+
+.dropdown-item-selected:hover {
+  background-color: #f472b6 !important;
+}  `;
 
 export default function JournalPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, verifyUser } = useAuth();
   const router = useRouter();
   const [complaints, setComplaints] = useState([]);
   const [backgroundHearts, setBackgroundHearts] = useState([]);
@@ -156,6 +174,7 @@ export default function JournalPage() {
   const [users, setUsers] = useState([]);
   const [viewMode, setViewMode] = useState("personal");
   const [temp, setTemp] = useState(0);
+  const [userChangedCheck, setUserChangedCheck] = useState(0);
 
   const getComplaints = async () => {
     const res = await axios.get("/api/messages", {
@@ -182,10 +201,11 @@ export default function JournalPage() {
     const res = await axios.get("/api/users/list");
     if (res.data.success) {
       const users = res.data.users
-        .filter((user) => user._id !== id)
-        .map((user) => {
-          user.avatar = user.name[0];
-          return user;
+        .filter((u) => u._id !== id)
+        .map((u) => {
+          u.avatar = u.name[0];
+          u.isSelected = user.sharedWith.includes(u._id);
+          return u;
         });
       setUsers(users);
     }
@@ -200,10 +220,6 @@ export default function JournalPage() {
     }
   };
 
-  useEffect(() => {
-    getSharedComplaints();
-  }, []);
-
   const shareWithUser = async (id) => {
     const res = await axios.put(
       "/api/users/share",
@@ -212,15 +228,26 @@ export default function JournalPage() {
       },
       { withCredentials: true }
     );
+    if (res.data.success) {
+      setUserChangedCheck((p) => p + 1);
+    }
   };
+
+  useEffect(() => {
+    getSharedComplaints();
+  }, []);
 
   useEffect(() => {
     getComplaints();
   }, [temp]);
 
   useEffect(() => {
+    verifyUser();
+  }, [userChangedCheck]);
+
+  useEffect(() => {
     user && getUsersList(user._id);
-  }, [user]);
+  }, [user, userChangedCheck]);
 
   useEffect(() => {
     const heartCount = 60;
@@ -344,34 +371,31 @@ export default function JournalPage() {
                   Select a user to share with:
                 </div>
                 {users.map((shareUser) => {
-                  const isAlreadyShared = user.sharedWith.includes(
-                    shareUser._id
-                  );
                   return (
                     <DropdownMenuItem
                       key={shareUser._id}
                       onClick={() => {
-                        if (!isAlreadyShared) shareWithUser(user._id);
+                        shareWithUser(shareUser._id);
                       }}
-                      // className={`flex items-center gap-3 cursor-pointer py-3 ${
-                      //   isAlreadyShared ? "bg-green-100" : ""
-                      // }`}
-                      // className="flex items-center gap-3 cursor-pointer py-3"
-                      className={`flex items-center gap-3 cursor-pointer py-3 ${
-                        isAlreadyShared
-                          ? "bg-pink-300 hover:bg-pink-300 opacity-100 cursor-not-allowed"
-                          : ""
-                      }`}
-                      // disabled={isAlreadyShared}
+                      className={cn(
+                        "flex items-center gap-3 cursor-pointer py-3 px-3 dropdown-item",
+                        shareUser.isSelected && "dropdown-item-selected"
+                      )}
+                      title={shareUser.isSelected ? "Remove" : "Add"}
                     >
                       <div className="bg-gradient-to-br from-pink-300 to-purple-300 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-bold text-sm">
                           {shareUser.avatar}
                         </span>
                       </div>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col flex-1">
                         <span className="font-medium">{shareUser.name}</span>
                       </div>
+                      {shareUser.isSelected && (
+                        <div className="bg-pink-500 rounded-full p-1">
+                          <Check className="h-3 w-3 text-white" />
+                        </div>
+                      )}
                     </DropdownMenuItem>
                   );
                 })}
