@@ -1,11 +1,10 @@
 import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge"
+import { twMerge } from "tailwind-merge";
 import mongoose from "mongoose";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
-
 
 export const connectDB = async () => {
   if (mongoose.connections[0].readyState) return;
@@ -15,4 +14,3 @@ export const connectDB = async () => {
   });
   console.log("MongoDB connected");
 };
-
